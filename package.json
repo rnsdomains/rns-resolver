@@ -1,0 +1,34 @@
+{
+  "name": "@rsksmart/rns-resolver",
+  "version": "1.0.0",
+  "description": "RNS Resolver",
+  "files": [
+    "/contracts",
+    "!/contracts/Migrations.sol"
+  ],
+  "scripts": {
+    "test": "truffle test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rnsdomains/rns-resolver.git"
+  },
+  "keywords": [
+    "rsk",
+    "rif",
+    "rns"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rnsdomains/rns-resolver/issues"
+  },
+  "homepage": "https://github.com/rnsdomains/rns-resolver#readme",
+  "dependencies": {
+    "@openzeppelin/contracts": "^2.4.0",
+    "@rsksmart/rns-registry": "^1.0.0"
+  },
+  "devDependencies": {
+    "eth-ens-namehash": "^2.0.8"
+  }
+}
