@@ -31,6 +31,15 @@ contract RNSTransfer {
 }
 ```
 
+```js
+const Web3 = require('web3');
+const AddrResolverData = require('@rsksmart/rns-registry/AddrResolverData.json');
+
+const web3 = new Web3('https://public-node.rsk.co')
+const AddrResolver = new web3.eth.Contract(AddrResolverData.abi, AddrResolverData.address.rskMainnet);
+```
+
+
 ---
 
 - Public Resolver
