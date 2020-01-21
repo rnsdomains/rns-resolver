@@ -5,8 +5,8 @@
   "files": [
     "/contracts",
     "!/contracts/Migrations.sol",
-    "./AddrResolverData.json",
-    "./ChainAddrResolverData.json"
+    "AddrResolverData.json",
+    "ChainAddrResolverData.json"
   ],
   "scripts": {
     "prepublish": "npx truffle compile && node ./datagen.js",
