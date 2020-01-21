@@ -1,12 +1,15 @@
 {
   "name": "@rsksmart/rns-resolver",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "RNS Resolver",
   "files": [
     "/contracts",
-    "!/contracts/Migrations.sol"
+    "!/contracts/Migrations.sol",
+    "./AddrResolverData.json",
+    "./ChainAddrResolverData.json"
   ],
   "scripts": {
+    "prepublish": "npx truffle compile && node ./datagen.js",
     "test": "truffle test"
   },
   "repository": {
@@ -29,6 +32,7 @@
     "@rsksmart/rns-registry": "^1.0.0"
   },
   "devDependencies": {
-    "eth-ens-namehash": "^2.0.8"
+    "eth-ens-namehash": "^2.0.8",
+    "truffle": "^5.1.9"
   }
 }
