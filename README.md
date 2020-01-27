@@ -13,7 +13,7 @@ npm i @rsksmart/rns-resolver
 ```solidity
 pragma solidity ^0.5.0;
 
-import "@rsksmart/rns-registry/contracts/AbstractRNS.sol";
+import "@rsksmart/rns-resolver/contracts/AbstractRNS.sol";
 
 contract RNSTransfer {
   AbstractRNS rns;
@@ -33,7 +33,7 @@ contract RNSTransfer {
 
 ```js
 const Web3 = require('web3');
-const AddrResolverData = require('@rsksmart/rns-registry/AddrResolverData.json');
+const AddrResolverData = require('@rsksmart/rns-resolver/AddrResolverData.json');
 
 const web3 = new Web3('https://public-node.rsk.co')
 const AddrResolver = new web3.eth.Contract(AddrResolverData.abi, AddrResolverData.address.rskMainnet);
