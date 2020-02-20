@@ -6,6 +6,7 @@ const addrResolverBuild = require('./build/contracts/PublicResolver');
 
 const addrResolverData = {
   abi: addrResolverBuild.abi,
+  bytecode: addrResolverBuild.bytecode,
   address: {
     rskMainnet: addresses.AddrResolver.rskMainnet,
     rskTestnet: addresses.AddrResolver.rskTestnet,
@@ -18,6 +19,7 @@ const chainAddrResolverBuild = require('./build/contracts/MultiChainResolver');
 
 const chainAddrResolverData = {
   abi: chainAddrResolverBuild.abi,
+  bytecode: chainAddrResolverBuild.bytecode,
   address: {
     rskMainnet: addresses.ChainAddrResolver.rskMainnet,
     rskTestnet: addresses.ChainAddrResolver.rskTestnet,
