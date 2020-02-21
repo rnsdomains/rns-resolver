@@ -1,5 +1,7 @@
 # rns-resolver
 
+[![npm version](https://badge.fury.io/js/%40rsksmart%2Frns-resolver.svg)](https://badge.fury.io/js/%40rsksmart%2Frns-resolver)
+
 RNS Resolver
 
 ## Install
