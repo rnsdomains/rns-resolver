@@ -41,6 +41,28 @@ const web3 = new Web3('https://public-node.rsk.co')
 const AddrResolver = new web3.eth.Contract(AddrResolverData.abi, AddrResolverData.address.rskMainnet);
 ```
 
+## Types
+
+There are TypeScript typing definitions of the contracts published together with the original contracts. 
+Supported contract's libraries are: 
+
+* `web3` version 1.* - `web3-v1-contracts`
+* `web3` version 2.* - `web3-v2-contracts`
+* `truffle` - `truffle-contracts`
+* `ethers` - `ethers-contracts`
+
+You can use them as follow:
+
+```typescript
+import Web3 from 'web3'
+import AddrResolver from '@rsksmart/rns-resolver/types/web3-v1-contracts/AddrResolverData.d.ts'
+import AddrResolverData from '@rsksmart/rns-resolver/AddrResolverData.json'
+
+const web3 = new Web3('https://public-node.rsk.co')
+const resolver = new web3.eth.Contract(AddrResolverData.abi, AddrResolverData.address.rskMainnet) as AddrResolver
+```
+
+Replace `web3-v1-contracts` with the proper library version.
 
 ---
 

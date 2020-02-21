@@ -6,10 +6,12 @@
     "/contracts",
     "!/contracts/Migrations.sol",
     "AddrResolverData.json",
-    "ChainAddrResolverData.json"
+    "ChainAddrResolverData.json",
+    "/types"
   ],
   "scripts": {
-    "prepublish": "npx truffle compile && node ./datagen.js",
+    "prepublish": "npx truffle compile && node ./datagen.js && npm run types-generation",
+    "types-generation": "typechain --target=web3-v1 '*Data.json' && typechain --target=web3-v2 '*Data.json' && typechain --target=truffle '*Data.json' && typechain --target=ethers '*Data.json'",
     "test": "truffle test"
   },
   "repository": {
@@ -33,6 +35,11 @@
   },
   "devDependencies": {
     "eth-ens-namehash": "^2.0.8",
-    "truffle": "^5.1.9"
+    "truffle": "^5.1.9",
+    "typechain": "^1.0.5",
+    "typechain-target-ethers": "^1.0.3",
+    "typechain-target-truffle": "^1.0.2",
+    "typechain-target-web3-v1": "^1.0.4",
+    "typechain-target-web3-v2": "^1.0.0"
   }
 }
