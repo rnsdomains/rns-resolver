@@ -1,6 +1,6 @@
 {
   "name": "@rsksmart/rns-resolver",
-  "version": "1.0.3",
+  "version": "2.0.0",
   "description": "RNS Resolver",
   "files": [
     "/contracts",
@@ -31,9 +31,13 @@
   "homepage": "https://github.com/rnsdomains/rns-resolver#readme",
   "dependencies": {
     "@openzeppelin/contracts": "^2.4.0",
+    "@openzeppelin/contracts-ethereum-package": "^2.5.0",
+    "@openzeppelin/upgrades": "^2.8.0",
     "@rsksmart/rns-registry": "^1.0.0"
   },
   "devDependencies": {
+    "@openzeppelin/test-helpers": "^0.5.5",
+    "chai": "^4.2.0",
     "eth-ens-namehash": "^2.0.8",
     "truffle": "^5.1.9",
     "typechain": "^1.0.5",
