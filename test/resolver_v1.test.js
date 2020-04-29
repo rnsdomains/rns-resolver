@@ -116,52 +116,52 @@ contract('Resolver V1', async (accounts) => {
     });
   });
 
-  const behavesLikeRecord = (getter, setter, args, [value1, value2], eventChecker) => {
+  const behavesLikeRecord = (getter, setter, args, [value1, value2], eventChecker, expected = null) => {
     describe('behaves like a record', () => {
       it('permits setting the record by the owner', async () => {
-        const tx = await this.proxy.methods[setter](this.node, ...args, value1, { from: accounts[0] });
-        expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(value1);
+        const tx = await this.proxy.methods[setter](this.node, ...args, ...value1, { from: accounts[0] });
+        expect(await this.proxy.methods[getter](this.node, ...args)).to.deep.equal(expected ? expected[0] : value1.length === 1 ? value1[0] : value1);
 
-        eventChecker(tx, value1);
+        eventChecker(tx, expected ? expected[0] : value1);
       });
 
       it('can overwrite previously set record', async () => {
-        await this.proxy.methods[setter](this.node, ...args, value1, { from: accounts[0] });
+        await this.proxy.methods[setter](this.node, ...args, ...value1, { from: accounts[0] });
 
-        const tx = await this.proxy.methods[setter](this.node, ...args, value2, { from: accounts[0] });
+        const tx = await this.proxy.methods[setter](this.node, ...args, ...value2, { from: accounts[0] });
 
-        expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(value2);
-        eventChecker(tx, value2);
+        expect(await this.proxy.methods[getter](this.node, ...args)).to.deep.equal(expected ? expected[1] : value2.length === 1 ? value2[0] : value2);
+        eventChecker(tx, expected ? expected[1] : value2);
       });
 
       it('can overwrite to same record', async () => {
-        await this.proxy.methods[setter](this.node, ...args, value1, { from: accounts[0] });
+        await this.proxy.methods[setter](this.node, ...args, ...value1, { from: accounts[0] });
 
-        const tx = await this.proxy.methods[setter](this.node, ...args, value1, { from: accounts[0] });
+        const tx = await this.proxy.methods[setter](this.node, ...args, ...value1, { from: accounts[0] });
 
-        expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(value1);
-        eventChecker(tx, value1);
+        expect(await this.proxy.methods[getter](this.node, ...args)).to.deep.equal(expected ? expected[0] : value1.length === 1 ? value1[0] : value1);
+        eventChecker(tx, expected ? expected[0] : value1);
       });
 
       it('forbids setting record by non-owners', async () => {
         await expectRevert.unspecified(
-          this.proxy.methods[setter](this.node, ...args, value1, { from: accounts[1] })
+          this.proxy.methods[setter](this.node, ...args, ...value1, { from: accounts[1] })
         );
       });
 
       it('forbids overwriting previously set record by non-owners', async () => {
-        await this.proxy.methods[setter](this.node, ...args, value1, { from: accounts[0] });
+        await this.proxy.methods[setter](this.node, ...args, ...value1, { from: accounts[0] });
 
         await expectRevert.unspecified(
-          this.proxy.methods[setter](this.node, ...args, value2, { from: accounts[1] })
+          this.proxy.methods[setter](this.node, ...args, ...value2, { from: accounts[1] })
         );
       });
 
       it('forbids overwriting to same record by non-owners', async () => {
-        await this.proxy.methods[setter](this.node, ...args, value1, { from: accounts[0] });
+        await this.proxy.methods[setter](this.node, ...args, ...value1, { from: accounts[0] });
 
         await expectRevert.unspecified(
-          this.proxy.methods[setter](this.node, ...args, value1, { from: accounts[1] })
+          this.proxy.methods[setter](this.node, ...args, ...value1, { from: accounts[1] })
         );
       });
     });
@@ -169,7 +169,7 @@ contract('Resolver V1', async (accounts) => {
 
   const hasNonexistentSignal = (getter, args, nonexistentValue) => {
     it('has zero value for nonexistent domains', async () => {
-      expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(nonexistentValue);
+      expect(await this.proxy.methods[getter](this.node, ...args)).to.deep.equal(nonexistentValue);
     });
   }
 
@@ -179,14 +179,14 @@ contract('Resolver V1', async (accounts) => {
     });
   }
 
-  const shouldCheckAuthorization = (getter, setter, args, value) => {
+  const shouldCheckAuthorization = (getter, setter, args, value, expected = null) => {
     describe('should check authorisation', () => {
       it('permits authorisations to be set', async () => {
         await this.proxy.setAuthorisation(this.node, accounts[1], true, { from: accounts[0] });
         expect(await this.proxy.authorisations(this.node, accounts[0], accounts[1])).to.be.true;
 
-        await this.proxy.methods[setter](this.node, ...args, value, { from: accounts[1] });
-        expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(value);
+        await this.proxy.methods[setter](this.node, ...args, ...value, { from: accounts[1] });
+        expect(await this.proxy.methods[getter](this.node, ...args)).to.deep.equal(expected !== null ? expected : value.length === 1 ? value[0] : value);
       });
 
       it('permits authorisations to be cleared', async () => {
@@ -195,13 +195,13 @@ contract('Resolver V1', async (accounts) => {
         await this.proxy.setAuthorisation(this.node, accounts[1], false, { from: accounts[0] });
         expect(await this.proxy.authorisations(this.node, accounts[0], accounts[1])).to.be.false;
 
-        await expectRevert.unspecified(this.proxy.methods[setter](this.node, ...args, value, { from: accounts[1] }));
+        await expectRevert.unspecified(this.proxy.methods[setter](this.node, ...args, ...value, { from: accounts[1] }));
       });
 
       it('permits authorised users to make changes', async () => {
         await this.proxy.setAuthorisation(this.node, accounts[1], true, { from: accounts[0] });
-        await this.proxy.methods[setter](this.node, ...args, value, { from: accounts[1] });
-        expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(value);
+        await this.proxy.methods[setter](this.node, ...args, ...value, { from: accounts[1] });
+        expect(await this.proxy.methods[getter](this.node, ...args)).to.deep.equal(expected !== null ? expected : value.length === 1 ? value[0] : value);
       });
 
       it('permits non-owners to set authorisations', async () => {
@@ -209,26 +209,26 @@ contract('Resolver V1', async (accounts) => {
 
         // The authorisation should have no effect, because accounts[1] is not the owner.
         await expectRevert.unspecified(
-          this.proxy.methods[setter](this.node, ...args, value, { from: accounts[2] })
+          this.proxy.methods[setter](this.node, ...args, ...value, { from: accounts[2] })
         );
       });
 
       it('checks the authorisation for the current owner', async () => {
         await this.proxy.setAuthorisation(this.node, accounts[2], true, { from: accounts[1] });
-        await this.rns.setOwner(this.node, accounts[1], {from: accounts[0]});
+        await this.rns.setOwner(this.node, accounts[1], { from: accounts[0] });
 
-        await this.proxy.methods[setter](this.node, ...args, value, { from: accounts[2] });
-        expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(value);
+        await this.proxy.methods[setter](this.node, ...args, ...value, { from: accounts[2] });
+        expect(await this.proxy.methods[getter](this.node, ...args)).to.deep.equal(expected !== null ? expected : value.length === 1 ? value[0] : value);
       });
 
       it('checks the authorisation for the previous owner', async () => {
         await this.proxy.setAuthorisation(this.node, accounts[2], true, { from: accounts[0] });
-        await this.proxy.methods[setter](this.node, ...args, value, { from: accounts[2] });
+        await this.proxy.methods[setter](this.node, ...args, ...value, { from: accounts[2] });
 
         await this.rns.setOwner(this.node, accounts[1], { from: accounts[0] });
-        expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(value);
-        await expectRevert.unspecified(this.proxy.methods[setter](this.node, ...args, value, { from: accounts[2] }));
-        expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(value);
+        expect(await this.proxy.methods[getter](this.node, ...args)).to.deep.equal(expected !== null ? expected : value.length === 1 ? value[0] : value);
+        await expectRevert.unspecified(this.proxy.methods[setter](this.node, ...args, ...value, { from: accounts[2] }));
+        expect(await this.proxy.methods[getter](this.node, ...args)).to.deep.equal(expected !== null ? expected : value.length === 1 ? value[0] : value);
       });
     });
   };
@@ -236,9 +236,10 @@ contract('Resolver V1', async (accounts) => {
   describe('addr', async () => {
     const getter = 'addr(bytes32)';
     const setter = 'setAddr(bytes32,address)';
-    const values = [accounts[3], accounts[4]];
+    const args = [];
+    const values = [[accounts[3]], [accounts[4]]];
 
-    behavesLikeRecord(getter, setter, [], values, (tx, value) => {
+    behavesLikeRecord(getter, setter, args, values, (tx, [value]) => {
       expect(tx.logs.length).to.eq(2);
       expect(tx.logs[0].event).to.eq('AddressChanged');
       expect(tx.logs[0].args.node).to.eq(this.node);
@@ -249,19 +250,20 @@ contract('Resolver V1', async (accounts) => {
       expect(tx.logs[1].args.a).to.eq(value);
     });
 
-    hasNonexistentSignal(getter, [], constants.ZERO_ADDRESS);
+    hasNonexistentSignal(getter, args, constants.ZERO_ADDRESS);
 
     interfaceIsSupported(getter);
 
-    shouldCheckAuthorization(getter, setter, [], values[0]);
+    shouldCheckAuthorization(getter, setter, args, values[0]);
   });
 
   describe('addr with coin', () => {
     const getter = 'addr(bytes32,uint256)';
     const setter = 'setAddr(bytes32,uint256,bytes)';
-    const values = [accounts[3].toLowerCase(), accounts[4].toLowerCase()];
+    const args = [123];
+    const values = [[accounts[3].toLowerCase()], [accounts[4].toLowerCase()]];
 
-    behavesLikeRecord(getter, setter, [123], values, (tx, value) => {
+    behavesLikeRecord(getter, setter, args, values, (tx, [value]) => {
       expect(tx.logs.length).to.eq(1);
       expect(tx.logs[0].event).to.eq('AddressChanged');
       expect(tx.logs[0].args.node).to.eq(this.node);
@@ -271,9 +273,9 @@ contract('Resolver V1', async (accounts) => {
 
     interfaceIsSupported(getter);
 
-    hasNonexistentSignal(getter, [123], null);
+    hasNonexistentSignal(getter, args, null);
 
-    shouldCheckAuthorization(getter, setter, [123], values[0]);
+    shouldCheckAuthorization(getter, setter, args, values[0]);
   });
 
   describe('in particular for rsk addr', async () => {
@@ -299,19 +301,53 @@ contract('Resolver V1', async (accounts) => {
   describe('contenthash', () => {
     const getter = 'contenthash(bytes32)';
     const setter = 'setContenthash(bytes32,bytes)';
-    const values = ['0x0011223344', '0x5566778899aa'];
+    const args = [];
+    const values = [['0x0011223344'], ['0x5566778899aa']];
 
-    behavesLikeRecord(getter, setter, [], values, (tx, value) => {
+    behavesLikeRecord(getter, setter, args, values, (tx, [value]) => {
       expect(tx.logs.length).to.eq(1);
       expect(tx.logs[0].event).to.eq('ContenthashChanged');
       expect(tx.logs[0].args.node).to.eq(this.node);
       expect(tx.logs[0].args.hash).to.eq(value);
     });
 
-    hasNonexistentSignal(getter, [], null);
+    hasNonexistentSignal(getter, args, null);
 
     interfaceIsSupported(getter);
 
-    shouldCheckAuthorization(getter, setter, [], values[0]);
+    shouldCheckAuthorization(getter, setter, args, values[0]);
+  });
+
+  describe('ABI', () => {
+    const getter = 'ABI(bytes32,uint256)';
+    const setter = 'setABI(bytes32,uint256,bytes)';
+    const args = [0x1];
+    const values = [['0x0011223344'], ['0x5566778899aa']];
+    const compareTo = [{ '0': web3.utils.toBN(1), '1': '0x0011223344' }, { '0': web3.utils.toBN(1), '1': '0x5566778899aa' }];
+
+    behavesLikeRecord(getter, setter, args, values, (tx, value) => {
+      expect(tx.logs.length).to.eq(1);
+      expect(tx.logs[0].event).to.eq('ABIChanged');
+      expect(tx.logs[0].args.node).to.eq(this.node);
+      expect(tx.logs[0].args.contentType).to.be.bignumber.eq(web3.utils.toBN(value[0]));
+    }, compareTo);
+
+    hasNonexistentSignal(getter, [0x15], { '0': web3.utils.toBN('0'), '1': null });
+
+    interfaceIsSupported(getter);
+
+    shouldCheckAuthorization(getter, setter, args, values[0], compareTo[0]);
+
+    it('returns the first valid ABI', async () => {
+      await this.proxy.setABI(this.node, 0x2, '0x666f6f', {from: accounts[0]});
+      await this.proxy.setABI(this.node, 0x4, '0x626172', {from: accounts[0]});
+
+      expect(await this.proxy.ABI(this.node, 0x7)).to.deep.equal({ '0': web3.utils.toBN(2), '1': '0x666f6f' }); // 1, 2 or 4
+      expect(await this.proxy.ABI(this.node, 0x5)).to.deep.equal({ '0': web3.utils.toBN(4), '1': '0x626172' }); // 1 or 4
+    });
+
+    it('rejects invalid content types', async () => {
+      await expectRevert.unspecified(this.proxy.setABI(this.node, 0x3, '0x12', {from: accounts[0]}));
+    });
   });
 });
