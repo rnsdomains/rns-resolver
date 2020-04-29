@@ -9,6 +9,10 @@ const ProxyAdmin = artifacts.require('ProxyAdmin');
 const ResolverV1 = artifacts.require('ResolverV1');
 const DummyVersion = artifacts.require('DummyVersion');
 
+/**
+ * Most of the tests were copied from
+ * https://github.com/ensdomains/resolvers/blob/9c3ed5377501d77738089c81c2a0b141878048f9/test/TestPublicResolver.js
+ */
 contract('Resolver V1', async (accounts) => {
   beforeEach(async () => {
     this.rns = await RNS.new();
@@ -73,21 +77,47 @@ contract('Resolver V1', async (accounts) => {
 
       expect(rns).to.eq(this.rns.address);
     });
+  });
 
-    it('should support eip165 interface id', async () => {
-      const supportsEIP165 = await this.proxy.supportsInterface('0x01ffc9a7');
-
-      expect(supportsEIP165).to.be.true;
+  describe('fallback function', async () => {
+    it('forbids calls to the fallback function with 0 value', async () => {
+      await expectRevert.unspecified(
+        web3.eth.sendTransaction({
+          from: accounts[0],
+          to: this.proxy.address,
+          gas: 3000000
+        })
+      );
     });
 
-    it('should not support 0xffffffff interface id', async () => {
-      const supportsEIP165 = await this.proxy.supportsInterface('0xffffffff');
-
-      expect(supportsEIP165).to.be.false;
+    it('forbids calls to the fallback function with 1 value', async () => {
+      await expectRevert.unspecified(
+        web3.eth.sendTransaction({
+          from: accounts[0],
+          to: this.proxy.address,
+          gas: 3000000,
+          value: 1
+        })
+      );
     });
   });
 
-  // Source: https://github.com/ensdomains/resolvers/blob/9c3ed5377501d77738089c81c2a0b141878048f9/test/TestPublicResolver.js#L599
+  describe('erc165', async () => {
+    it('supports standard interfaces', async () => {
+        expect(await this.proxy.supportsInterface(web3.eth.abi.encodeFunctionSignature('supportsInterface(bytes4)'))).to.be.true;
+        expect(await this.proxy.supportsInterface(web3.eth.abi.encodeFunctionSignature('addr(bytes32)'))).to.be.true;
+        expect(await this.proxy.supportsInterface(web3.eth.abi.encodeFunctionSignature('addr(bytes32,uint256)'))).to.be.true;
+    });
+
+    it('does not support 0xffffffff interface', async () => {
+        expect(await this.proxy.supportsInterface('0xffffffff')).to.be.false;
+    });
+
+    it('does not support a random interface', async () => {
+        expect(await this.proxy.supportsInterface(web3.eth.abi.encodeFunctionSignature('random(bytes4)'))).to.be.false;
+    });
+  });
+
   describe('authorisations', async () => {
     it('permits authorisations to be set', async () => {
       await this.proxy.setAuthorisation(this.node, accounts[1], true, {from: accounts[0]});
