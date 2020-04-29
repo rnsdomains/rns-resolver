@@ -387,4 +387,24 @@ contract('Resolver V1', async (accounts) => {
 
     shouldCheckAuthorization(getter, setter, args, values[0], compareTo[0]);
   });
+
+  describe('text', () => {
+    const getter = 'text(bytes32,string)';
+    const setter = 'setText(bytes32,string,string)';
+    const args = ['url'];
+    const values = [['https://rifos.org'], ['https://rsk.co']];
+
+    behavesLikeRecord(getter, setter, args, values, (tx, [value]) => {
+      expect(tx.logs.length).to.eq(1);
+      expect(tx.logs[0].event).to.eq('TextChanged');
+      expect(tx.logs[0].args.node).to.eq(this.node);
+      expect(tx.logs[0].args.key).to.eq('url');
+    });
+
+    hasNonexistentSignal(getter, args, '');
+
+    interfaceIsSupported(getter);
+
+    shouldCheckAuthorization(getter, setter, args, values[0]);
+  });
 });
