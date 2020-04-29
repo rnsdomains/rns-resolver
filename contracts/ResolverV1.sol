@@ -1,5 +1,4 @@
 pragma solidity ^0.5.0;
-pragma experimental ABIEncoderV2;
 
 import "@rsksmart/rns-registry/contracts/AbstractRNS.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
