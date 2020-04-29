@@ -7,7 +7,6 @@ const { encodeCall } = require('@openzeppelin/upgrades');
 
 module.exports = (deployer, network, accounts) => {
   deployer.then(async () => {
-    console.log(network)
     if (network === 'develop') {
       const rns = await deployer.deploy(RNS);
       const proxyFactory = await deployer.deploy(ProxyFactory);

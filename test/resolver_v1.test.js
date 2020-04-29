@@ -1,6 +1,7 @@
 const { encodeCall } = require('@openzeppelin/upgrades');
 const { expect } = require('chai');
 const { expectRevert } = require('@openzeppelin/test-helpers');
+const namehash = require('eth-ens-namehash');
 
 const RNS = artifacts.require('RNS');
 const ProxyFactory = artifacts.require('ProxyFactory');
@@ -21,6 +22,9 @@ contract('Resolver V1', async (accounts) => {
 
     this.resolverAddress = await this.proxyFactory.getDeploymentAddress(salt, accounts[0]);
     this.proxy = await ResolverV1.at(this.resolverAddress);
+
+    await this.rns.setSubnodeOwner('0x00', web3.utils.sha3('rsk'), accounts[0]);
+    this.node = namehash.hash('rsk');
   });
 
   describe('upgrades', async () => {
@@ -70,12 +74,6 @@ contract('Resolver V1', async (accounts) => {
       expect(rns).to.eq(this.rns.address);
     });
 
-    it('should allow to query rns owner', async () => {
-      const rootOwner = await this.proxy.rnsOwner('0x00');
-
-      expect(rootOwner).to.eq(accounts[0]);
-    })
-
     it('should support eip165 interface id', async () => {
       const supportsEIP165 = await this.proxy.supportsInterface('0x01ffc9a7');
 
@@ -86,6 +84,129 @@ contract('Resolver V1', async (accounts) => {
       const supportsEIP165 = await this.proxy.supportsInterface('0xffffffff');
 
       expect(supportsEIP165).to.be.false;
+    });
+  });
+
+  // Source: https://github.com/ensdomains/resolvers/blob/9c3ed5377501d77738089c81c2a0b141878048f9/test/TestPublicResolver.js#L599
+  describe('authorisations', async () => {
+    it('permits authorisations to be set', async () => {
+      await this.proxy.setAuthorisation(this.node, accounts[1], true, {from: accounts[0]});
+      assert.equal(await this.proxy.authorisations(this.node, accounts[0], accounts[1]), true);
+    });
+
+    it('permits authorised users to make changes', async () => {
+      await this.proxy.setAuthorisation(this.node, accounts[1], true, {from: accounts[0]});
+      assert.equal(await this.proxy.authorisations(this.node, await this.rns.owner(this.node), accounts[1]), true);
+      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[1]});
+      assert.equal(await this.proxy.addr(this.node), accounts[1]);
+    });
+
+    it('permits authorisations to be cleared', async () => {
+      await this.proxy.setAuthorisation(this.node, accounts[1], false, {from: accounts[0]});
+      await expectRevert.unspecified(this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[0], {from: accounts[1]}));
+    });
+
+    it('permits non-owners to set authorisations', async () => {
+      await this.proxy.setAuthorisation(this.node, accounts[2], true, {from: accounts[1]});
+
+      // The authorisation should have no effect, because accounts[1] is not the owner.
+      await expectRevert.unspecified(
+        this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[0], {from: accounts[2]})
+      );
+    });
+
+    it('checks the authorisation for the current owner', async () => {
+      await this.proxy.setAuthorisation(this.node, accounts[2], true, {from: accounts[1]});
+      await this.rns.setOwner(this.node, accounts[1], {from: accounts[0]});
+
+      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[0], {from: accounts[2]});
+      assert.equal(await this.proxy.addr(this.node), accounts[0]);
+    });
+  });
+
+  // Source: https://github.com/ensdomains/resolvers/blob/9c3ed5377501d77738089c81c2a0b141878048f9/test/TestPublicResolver.js#L63
+  describe('addr', async () => {
+    it('permits setting address by owner', async () => {
+      var tx = await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[0]});
+      assert.equal(tx.logs.length, 2);
+      assert.equal(tx.logs[0].event, "AddressChanged");
+      assert.equal(tx.logs[0].args.node, this.node);
+      assert.equal(tx.logs[0].args.newAddress, accounts[1].toLowerCase());
+      assert.equal(tx.logs[1].event, "AddrChanged");
+      assert.equal(tx.logs[1].args.node, this.node);
+      assert.equal(tx.logs[1].args.a, accounts[1]);
+      assert.equal(await this.proxy.methods['addr(bytes32)'](this.node), accounts[1]);
+    });
+
+    it('can overwrite previously set address', async () => {
+      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[0]});
+      assert.equal(await this.proxy.methods['addr(bytes32)'](this.node), accounts[1]);
+
+      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[0], {from: accounts[0]});
+      assert.equal(await this.proxy.methods['addr(bytes32)'](this.node), accounts[0]);
+    });
+
+    it('can overwrite to same address', async () => {
+      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[0]});
+      assert.equal(await this.proxy.methods['addr(bytes32)'](this.node), accounts[1]);
+
+      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[0]});
+      assert.equal(await this.proxy.methods['addr(bytes32)'](this.node), accounts[1]);
+    });
+
+    it('forbids setting new address by non-owners', async () => {
+      await expectRevert.unspecified(
+          this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[1]})
+      );
+    });
+
+    it('forbids writing same address by non-owners', async () => {
+      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[0]});
+
+      await expectRevert.unspecified(
+          this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[1]})
+      );
+    });
+
+    it('forbids overwriting existing address by non-owners', async () => {
+      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[0]});
+
+      await expectRevert.unspecified(
+          this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[0], {from: accounts[1]})
+      );
+    });
+
+    it('returns zero when fetching nonexistent addresses', async () => {
+      assert.equal(await this.proxy.methods['addr(bytes32)'](this.node), '0x0000000000000000000000000000000000000000');
+    });
+
+    it('permits setting and retrieving addresses for other coin types', async () => {
+      await this.proxy.methods['setAddr(bytes32,uint256,bytes)'](this.node, 123, accounts[1], {from: accounts[0]});
+      assert.equal(await this.proxy.methods['addr(bytes32,uint256)'](this.node, 123), accounts[1].toLowerCase());
+    });
+
+    it('returns RSK address for coin type 137', async () => {
+      var tx = await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[0]});
+      assert.equal(tx.logs.length, 2);
+      assert.equal(tx.logs[0].event, "AddressChanged");
+      assert.equal(tx.logs[0].args.node, this.node);
+      assert.equal(tx.logs[0].args.newAddress, accounts[1].toLowerCase());
+      assert.equal(tx.logs[1].event, "AddrChanged");
+      assert.equal(tx.logs[1].args.node, this.node);
+      assert.equal(tx.logs[1].args.a, accounts[1]);
+      assert.equal(await this.proxy.methods['addr(bytes32,uint256)'](this.node, 137), accounts[1].toLowerCase());
+    });
+
+    it('setting coin type 137 updates RSK address', async () => {
+      var tx = await this.proxy.methods['setAddr(bytes32,uint256,bytes)'](this.node, 137, accounts[2], {from: accounts[0]});
+      assert.equal(tx.logs.length, 2);
+      assert.equal(tx.logs[0].event, "AddressChanged");
+      assert.equal(tx.logs[0].args.node, this.node);
+      assert.equal(tx.logs[0].args.newAddress, accounts[2].toLowerCase());
+      assert.equal(tx.logs[1].event, "AddrChanged");
+      assert.equal(tx.logs[1].args.node, this.node);
+      assert.equal(tx.logs[1].args.a, accounts[2]);
+      assert.equal(await this.proxy.methods['addr(bytes32)'](this.node), accounts[2]);
     });
   });
 });
