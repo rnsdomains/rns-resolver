@@ -8,6 +8,8 @@ const ProxyFactory = artifacts.require('ProxyFactory');
 const ProxyAdmin = artifacts.require('ProxyAdmin');
 const ResolverV1 = artifacts.require('ResolverV1');
 const DummyVersion = artifacts.require('DummyVersion');
+const TruthyERC165 = artifacts.require('TruthyERC165');
+const FalsyERC165 = artifacts.require('FalsyERC165');
 
 /**
  * Most of the tests were copied from
@@ -379,8 +381,8 @@ contract('Resolver V1', async (accounts) => {
     }, compareTo);
 
     hasNonexistentSignal(getter, args, {
-      '0': '0x0000000000000000000000000000000000000000000000000000000000000000', '1': '0x0000000000000000000000000000000000000000000000000000000000000000',
-      'x': '0x0000000000000000000000000000000000000000000000000000000000000000', 'y': '0x0000000000000000000000000000000000000000000000000000000000000000'
+      '0': constants.ZERO_BYTES32, '1': constants.ZERO_BYTES32,
+      'x': constants.ZERO_BYTES32, 'y': constants.ZERO_BYTES32
     });
 
     interfaceIsSupported(getter);
@@ -406,5 +408,59 @@ contract('Resolver V1', async (accounts) => {
     interfaceIsSupported(getter);
 
     shouldCheckAuthorization(getter, setter, args, values[0]);
+  });
+
+  describe('interface discovery', () => {
+    const getter = 'interfaceImplementer(bytes32,bytes4)';
+    const setter = 'setInterface(bytes32,bytes4,address)';
+    const args = ['0x26021998'];
+    const values = [[accounts[3]], [accounts[4]]];
+
+    behavesLikeRecord(getter, setter, args, values, (tx, [value]) => {
+      expect(tx.logs.length).to.eq(1);
+      expect(tx.logs[0].event).to.eq('InterfaceChanged');
+      expect(tx.logs[0].args.node).to.eq(this.node);
+      expect(tx.logs[0].args.interfaceID).to.eq('0x2602199800000000000000000000000000000000000000000000000000000000'); // indexed
+      expect(tx.logs[0].args.implementer).to.be.bignumber.eq(value);
+    });
+
+    hasNonexistentSignal(getter, args, constants.ZERO_ADDRESS);
+
+    interfaceIsSupported(getter);
+
+    shouldCheckAuthorization(getter, setter, args, values[0]);
+
+    describe('fallback', async () => {
+      it('returns 0 on fallback when target contract has no addr', async () => {
+        expect(await this.proxy.interfaceImplementer(this.node, '0x3b3b57de')).to.eq(constants.ZERO_ADDRESS);
+      });
+
+      it('returns 0 on fallback when target is not a contract', async () => {
+        await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[0], {from: accounts[0]});
+        expect(await this.proxy.interfaceImplementer(this.node, '0x3b3b57de')).to.eq(constants.ZERO_ADDRESS);
+      });
+
+      it('returns 0 on fallback when target does not implement the specified interface', async () => {
+        const falsyERC165 = await FalsyERC165.new();
+        await this.proxy.methods['setAddr(bytes32,address)'](this.node, falsyERC165.address, {from: accounts[0]});
+        expect(await this.proxy.interfaceImplementer(this.node, '0x3b3b57de')).to.eq(constants.ZERO_ADDRESS);
+      });
+
+      it('returns 0 on fallback when target does not implement the specified interface', async () => {
+        const truthyERC165 = await TruthyERC165.new();
+        await this.proxy.methods['setAddr(bytes32,address)'](this.node, truthyERC165.address, {from: accounts[0]});
+        expect(await this.proxy.interfaceImplementer(this.node, '0x3b3b57de')).to.eq(truthyERC165.address);
+      });
+
+      it('returns 0 on fallback when target contract does not support implementsInterface', async () => {
+        await this.proxy.methods['setAddr(bytes32,address)'](this.node, this.rns.address, {from: accounts[0]});
+        expect(await this.proxy.interfaceImplementer(this.node, '0x3b3b57de')).to.eq(constants.ZERO_ADDRESS);
+      });
+
+      it('falls back to calling implementsInterface on addr', async () => {
+        await this.proxy.methods['setAddr(bytes32,address)'](this.node, this.proxy.address, {from: accounts[0]});
+        expect(await this.proxy.interfaceImplementer(this.node, '0x3b3b57de')).to.eq(this.proxy.address);
+      });
+    });
   });
 });
