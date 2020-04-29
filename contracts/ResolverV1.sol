@@ -5,6 +5,7 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "./RSKAddrResolver.sol";
 import "@ensdomains/resolver/contracts/profiles/ContentHashResolver.sol";
 import "@ensdomains/resolver/contracts/profiles/ABIResolver.sol";
+import "@ensdomains/resolver/contracts/profiles/PubkeyResolver.sol";
 
 /**
  * @title ResolverV1
@@ -12,7 +13,7 @@ import "@ensdomains/resolver/contracts/profiles/ABIResolver.sol";
  * be as an openzeppelin/upgrades v2.8 proxy contract implementation.
  * Source: https://github.com/ensdomains/resolvers/blob/9c3ed5377501d77738089c81c2a0b141878048f9/contracts/PublicResolver.sol
  */
-contract ResolverV1 is Initializable, RSKAddrResolver, ContentHashResolver, ABIResolver {
+contract ResolverV1 is Initializable, RSKAddrResolver, ContentHashResolver, ABIResolver, PubkeyResolver {
     AbstractRNS public rns;
 
     /**
