@@ -233,40 +233,47 @@ contract('Resolver V1', async (accounts) => {
     });
   };
 
-  // Source: https://github.com/ensdomains/resolvers/blob/9c3ed5377501d77738089c81c2a0b141878048f9/test/TestPublicResolver.js#L63
   describe('addr', async () => {
-    behavesLikeRecord('addr(bytes32)', 'setAddr(bytes32,address)', [], [accounts[3], accounts[4]], (tx, value) => {
+    const getter = 'addr(bytes32)';
+    const setter = 'setAddr(bytes32,address)';
+    const values = [accounts[3], accounts[4]];
+
+    behavesLikeRecord(getter, setter, [], values, (tx, value) => {
       expect(tx.logs.length).to.eq(2);
-      expect(tx.logs[0].event).to.eq("AddressChanged");
+      expect(tx.logs[0].event).to.eq('AddressChanged');
       expect(tx.logs[0].args.node).to.eq(this.node);
       expect(tx.logs[0].args.newAddress).to.eq(value.toLowerCase());
       expect(tx.logs[0].args.coinType).to.be.bignumber.eq(web3.utils.toBN(137));
-      expect(tx.logs[1].event).to.eq("AddrChanged");
+      expect(tx.logs[1].event).to.eq('AddrChanged');
       expect(tx.logs[1].args.node).to.eq(this.node);
       expect(tx.logs[1].args.a).to.eq(value);
     });
 
-    hasNonexistentSignal('addr(bytes32)', [], constants.ZERO_ADDRESS);
+    hasNonexistentSignal(getter, [], constants.ZERO_ADDRESS);
 
-    interfaceIsSupported('addr(bytes32)');
+    interfaceIsSupported(getter);
 
-    shouldCheckAuthorization('addr(bytes32)', 'setAddr(bytes32,address)', [], accounts[3]);
+    shouldCheckAuthorization(getter, setter, [], values[0]);
   });
 
   describe('addr with coin', () => {
-    behavesLikeRecord('addr(bytes32,uint256)', 'setAddr(bytes32,uint256,bytes)', [123], [accounts[3].toLowerCase(), accounts[4].toLowerCase()], (tx, value) => {
+    const getter = 'addr(bytes32,uint256)';
+    const setter = 'setAddr(bytes32,uint256,bytes)';
+    const values = [accounts[3].toLowerCase(), accounts[4].toLowerCase()];
+
+    behavesLikeRecord(getter, setter, [123], values, (tx, value) => {
       expect(tx.logs.length).to.eq(1);
-      expect(tx.logs[0].event).to.eq("AddressChanged");
+      expect(tx.logs[0].event).to.eq('AddressChanged');
       expect(tx.logs[0].args.node).to.eq(this.node);
       expect(tx.logs[0].args.coinType).to.be.bignumber.eq(web3.utils.toBN(123));
       expect(tx.logs[0].args.newAddress).to.eq(value.toLowerCase());
     });
 
-    interfaceIsSupported('addr(bytes32,uint256)');
+    interfaceIsSupported(getter);
 
-    hasNonexistentSignal('addr(bytes32,uint256)', [123], null);
+    hasNonexistentSignal(getter, [123], null);
 
-    shouldCheckAuthorization('addr(bytes32,uint256)', 'setAddr(bytes32,uint256,bytes)', [123], accounts[3].toLowerCase());
+    shouldCheckAuthorization(getter, setter, [123], values[0]);
   });
 
   describe('in particular for rsk addr', async () => {
@@ -278,14 +285,33 @@ contract('Resolver V1', async (accounts) => {
     it('setting coin type 137 updates RSK address and emits AddrChanged', async () => {
       var tx = await this.proxy.methods['setAddr(bytes32,uint256,bytes)'](this.node, 137, accounts[2], {from: accounts[0]});
       expect(tx.logs.length).to.eq(2);
-      expect(tx.logs[0].event).to.eq("AddressChanged");
+      expect(tx.logs[0].event).to.eq('AddressChanged');
       expect(tx.logs[0].args.node).to.eq(this.node);
       expect(tx.logs[0].args.newAddress).to.eq(accounts[2].toLowerCase());
       expect(tx.logs[0].args.coinType).to.be.bignumber.eq(web3.utils.toBN(137));
-      expect(tx.logs[1].event).to.eq("AddrChanged");
+      expect(tx.logs[1].event).to.eq('AddrChanged');
       expect(tx.logs[1].args.node).to.eq(this.node);
       expect(tx.logs[1].args.a).to.eq(accounts[2]);
       expect(await this.proxy.methods['addr(bytes32)'](this.node)).to.eq(accounts[2]);
     });
+  });
+
+  describe('contenthash', () => {
+    const getter = 'contenthash(bytes32)';
+    const setter = 'setContenthash(bytes32,bytes)';
+    const values = ['0x0011223344', '0x5566778899aa'];
+
+    behavesLikeRecord(getter, setter, [], values, (tx, value) => {
+      expect(tx.logs.length).to.eq(1);
+      expect(tx.logs[0].event).to.eq('ContenthashChanged');
+      expect(tx.logs[0].args.node).to.eq(this.node);
+      expect(tx.logs[0].args.hash).to.eq(value);
+    });
+
+    hasNonexistentSignal(getter, [], null);
+
+    interfaceIsSupported(getter);
+
+    shouldCheckAuthorization(getter, setter, [], values[0]);
   });
 });
