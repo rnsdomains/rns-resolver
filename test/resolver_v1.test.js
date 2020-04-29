@@ -1,6 +1,6 @@
 const { encodeCall } = require('@openzeppelin/upgrades');
 const { expect } = require('chai');
-const { expectRevert } = require('@openzeppelin/test-helpers');
+const { expectRevert, constants } = require('@openzeppelin/test-helpers');
 const namehash = require('eth-ens-namehash');
 
 const RNS = artifacts.require('RNS');
@@ -103,10 +103,8 @@ contract('Resolver V1', async (accounts) => {
   });
 
   describe('erc165', async () => {
-    it('supports standard interfaces', async () => {
+    it('supports erc165 interface', async () => {
         expect(await this.proxy.supportsInterface(web3.eth.abi.encodeFunctionSignature('supportsInterface(bytes4)'))).to.be.true;
-        expect(await this.proxy.supportsInterface(web3.eth.abi.encodeFunctionSignature('addr(bytes32)'))).to.be.true;
-        expect(await this.proxy.supportsInterface(web3.eth.abi.encodeFunctionSignature('addr(bytes32,uint256)'))).to.be.true;
     });
 
     it('does not support 0xffffffff interface', async () => {
@@ -118,121 +116,172 @@ contract('Resolver V1', async (accounts) => {
     });
   });
 
-  describe('authorisations', async () => {
-    it('permits authorisations to be set', async () => {
-      await this.proxy.setAuthorisation(this.node, accounts[1], true, {from: accounts[0]});
-      expect(await this.proxy.authorisations(this.node, accounts[0], accounts[1])).to.be.true;
+  const behavesLikeRecord = (getter, setter, args, [value1, value2], eventChecker) => {
+    describe('behaves like a record', () => {
+      it('permits setting the record by the owner', async () => {
+        const tx = await this.proxy.methods[setter](this.node, ...args, value1, { from: accounts[0] });
+        expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(value1);
+
+        eventChecker(tx, value1);
+      });
+
+      it('can overwrite previously set record', async () => {
+        await this.proxy.methods[setter](this.node, ...args, value1, { from: accounts[0] });
+
+        const tx = await this.proxy.methods[setter](this.node, ...args, value2, { from: accounts[0] });
+
+        expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(value2);
+        eventChecker(tx, value2);
+      });
+
+      it('can overwrite to same record', async () => {
+        await this.proxy.methods[setter](this.node, ...args, value1, { from: accounts[0] });
+
+        const tx = await this.proxy.methods[setter](this.node, ...args, value1, { from: accounts[0] });
+
+        expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(value1);
+        eventChecker(tx, value1);
+      });
+
+      it('forbids setting record by non-owners', async () => {
+        await expectRevert.unspecified(
+          this.proxy.methods[setter](this.node, ...args, value1, { from: accounts[1] })
+        );
+      });
+
+      it('forbids overwriting previously set record by non-owners', async () => {
+        await this.proxy.methods[setter](this.node, ...args, value1, { from: accounts[0] });
+
+        await expectRevert.unspecified(
+          this.proxy.methods[setter](this.node, ...args, value2, { from: accounts[1] })
+        );
+      });
+
+      it('forbids overwriting to same record by non-owners', async () => {
+        await this.proxy.methods[setter](this.node, ...args, value1, { from: accounts[0] });
+
+        await expectRevert.unspecified(
+          this.proxy.methods[setter](this.node, ...args, value1, { from: accounts[1] })
+        );
+      });
     });
+  }
 
-    it('permits authorised users to make changes', async () => {
-      await this.proxy.setAuthorisation(this.node, accounts[1], true, {from: accounts[0]});
-      expect(await this.proxy.authorisations(this.node, await this.rns.owner(this.node), accounts[1])).to.be.true;
-      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[1]});
-      expect(await this.proxy.addr(this.node)).to.eq(accounts[1]);
+  const hasNonexistentSignal = (getter, args, nonexistentValue) => {
+    it('has zero value for nonexistent domains', async () => {
+      expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(nonexistentValue);
     });
+  }
 
-    it('permits authorisations to be cleared', async () => {
-      await this.proxy.setAuthorisation(this.node, accounts[1], false, {from: accounts[0]});
-      await expectRevert.unspecified(this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[0], {from: accounts[1]}));
+  const interfaceIsSupported = (signature) => {
+    it('interface is supported via erc165', async () => {
+      expect(await this.proxy.supportsInterface(web3.eth.abi.encodeFunctionSignature(signature))).to.be.true;
     });
+  }
 
-    it('permits non-owners to set authorisations', async () => {
-      await this.proxy.setAuthorisation(this.node, accounts[2], true, {from: accounts[1]});
+  const shouldCheckAuthorization = (getter, setter, args, value) => {
+    describe('should check authorisation', () => {
+      it('permits authorisations to be set', async () => {
+        await this.proxy.setAuthorisation(this.node, accounts[1], true, { from: accounts[0] });
+        expect(await this.proxy.authorisations(this.node, accounts[0], accounts[1])).to.be.true;
 
-      // The authorisation should have no effect, because accounts[1] is not the owner.
-      await expectRevert.unspecified(
-        this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[0], {from: accounts[2]})
-      );
+        await this.proxy.methods[setter](this.node, ...args, value, { from: accounts[1] });
+        expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(value);
+      });
+
+      it('permits authorisations to be cleared', async () => {
+        await this.proxy.setAuthorisation(this.node, accounts[1], true, { from: accounts[0] });
+
+        await this.proxy.setAuthorisation(this.node, accounts[1], false, { from: accounts[0] });
+        expect(await this.proxy.authorisations(this.node, accounts[0], accounts[1])).to.be.false;
+
+        await expectRevert.unspecified(this.proxy.methods[setter](this.node, ...args, value, { from: accounts[1] }));
+      });
+
+      it('permits authorised users to make changes', async () => {
+        await this.proxy.setAuthorisation(this.node, accounts[1], true, { from: accounts[0] });
+        await this.proxy.methods[setter](this.node, ...args, value, { from: accounts[1] });
+        expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(value);
+      });
+
+      it('permits non-owners to set authorisations', async () => {
+        await this.proxy.setAuthorisation(this.node, accounts[2], true, { from: accounts[1] });
+
+        // The authorisation should have no effect, because accounts[1] is not the owner.
+        await expectRevert.unspecified(
+          this.proxy.methods[setter](this.node, ...args, value, { from: accounts[2] })
+        );
+      });
+
+      it('checks the authorisation for the current owner', async () => {
+        await this.proxy.setAuthorisation(this.node, accounts[2], true, { from: accounts[1] });
+        await this.rns.setOwner(this.node, accounts[1], {from: accounts[0]});
+
+        await this.proxy.methods[setter](this.node, ...args, value, { from: accounts[2] });
+        expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(value);
+      });
+
+      it('checks the authorisation for the previous owner', async () => {
+        await this.proxy.setAuthorisation(this.node, accounts[2], true, { from: accounts[0] });
+        await this.proxy.methods[setter](this.node, ...args, value, { from: accounts[2] });
+
+        await this.rns.setOwner(this.node, accounts[1], { from: accounts[0] });
+        expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(value);
+        await expectRevert.unspecified(this.proxy.methods[setter](this.node, ...args, value, { from: accounts[2] }));
+        expect(await this.proxy.methods[getter](this.node, ...args)).to.eq(value);
+      });
     });
-
-    it('checks the authorisation for the current owner', async () => {
-      await this.proxy.setAuthorisation(this.node, accounts[2], true, {from: accounts[1]});
-      await this.rns.setOwner(this.node, accounts[1], {from: accounts[0]});
-
-      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[0], {from: accounts[2]});
-      expect(await this.proxy.addr(this.node)).to.eq(accounts[0]);
-    });
-  });
+  };
 
   // Source: https://github.com/ensdomains/resolvers/blob/9c3ed5377501d77738089c81c2a0b141878048f9/test/TestPublicResolver.js#L63
   describe('addr', async () => {
-    it('permits setting address by owner', async () => {
-      var tx = await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[0]});
+    behavesLikeRecord('addr(bytes32)', 'setAddr(bytes32,address)', [], [accounts[3], accounts[4]], (tx, value) => {
       expect(tx.logs.length).to.eq(2);
       expect(tx.logs[0].event).to.eq("AddressChanged");
       expect(tx.logs[0].args.node).to.eq(this.node);
-      expect(tx.logs[0].args.newAddress).to.eq(accounts[1].toLowerCase());
+      expect(tx.logs[0].args.newAddress).to.eq(value.toLowerCase());
+      expect(tx.logs[0].args.coinType).to.be.bignumber.eq(web3.utils.toBN(137));
       expect(tx.logs[1].event).to.eq("AddrChanged");
       expect(tx.logs[1].args.node).to.eq(this.node);
-      expect(tx.logs[1].args.a).to.eq(accounts[1]);
-      expect(await this.proxy.methods['addr(bytes32)'](this.node)).to.eq(accounts[1]);
+      expect(tx.logs[1].args.a).to.eq(value);
     });
 
-    it('can overwrite previously set address', async () => {
-      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[0]});
-      expect(await this.proxy.methods['addr(bytes32)'](this.node)).to.eq(accounts[1]);
+    hasNonexistentSignal('addr(bytes32)', [], constants.ZERO_ADDRESS);
 
-      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[0], {from: accounts[0]});
-      expect(await this.proxy.methods['addr(bytes32)'](this.node)).to.eq(accounts[0]);
+    interfaceIsSupported('addr(bytes32)');
+
+    shouldCheckAuthorization('addr(bytes32)', 'setAddr(bytes32,address)', [], accounts[3]);
+  });
+
+  describe('addr with coin', () => {
+    behavesLikeRecord('addr(bytes32,uint256)', 'setAddr(bytes32,uint256,bytes)', [123], [accounts[3].toLowerCase(), accounts[4].toLowerCase()], (tx, value) => {
+      expect(tx.logs.length).to.eq(1);
+      expect(tx.logs[0].event).to.eq("AddressChanged");
+      expect(tx.logs[0].args.node).to.eq(this.node);
+      expect(tx.logs[0].args.coinType).to.be.bignumber.eq(web3.utils.toBN(123));
+      expect(tx.logs[0].args.newAddress).to.eq(value.toLowerCase());
     });
 
-    it('can overwrite to same address', async () => {
-      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[0]});
-      expect(await this.proxy.methods['addr(bytes32)'](this.node)).to.eq(accounts[1]);
+    interfaceIsSupported('addr(bytes32,uint256)');
 
-      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[0]});
-      expect(await this.proxy.methods['addr(bytes32)'](this.node)).to.eq(accounts[1]);
-    });
+    hasNonexistentSignal('addr(bytes32,uint256)', [123], null);
 
-    it('forbids setting new address by non-owners', async () => {
-      await expectRevert.unspecified(
-          this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[1]})
-      );
-    });
+    shouldCheckAuthorization('addr(bytes32,uint256)', 'setAddr(bytes32,uint256,bytes)', [123], accounts[3].toLowerCase());
+  });
 
-    it('forbids writing same address by non-owners', async () => {
-      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[0]});
-
-      await expectRevert.unspecified(
-          this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[1]})
-      );
-    });
-
-    it('forbids overwriting existing address by non-owners', async () => {
-      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[0]});
-
-      await expectRevert.unspecified(
-          this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[0], {from: accounts[1]})
-      );
-    });
-
-    it('returns zero when fetching nonexistent addresses', async () => {
-      expect(await this.proxy.methods['addr(bytes32)'](this.node)).to.eq('0x0000000000000000000000000000000000000000');
-    });
-
-    it('permits setting and retrieving addresses for other coin types', async () => {
-      await this.proxy.methods['setAddr(bytes32,uint256,bytes)'](this.node, 123, accounts[1], {from: accounts[0]});
-      expect(await this.proxy.methods['addr(bytes32,uint256)'](this.node, 123)).to.eq(accounts[1].toLowerCase());
-    });
-
+  describe('in particular for rsk addr', async () => {
     it('returns RSK address for coin type 137', async () => {
-      var tx = await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[0]});
-      expect(tx.logs.length).to.eq(2);
-      expect(tx.logs[0].event).to.eq("AddressChanged");
-      expect(tx.logs[0].args.node).to.eq(this.node);
-      expect(tx.logs[0].args.newAddress).to.eq(accounts[1].toLowerCase());
-      expect(tx.logs[1].event).to.eq("AddrChanged");
-      expect(tx.logs[1].args.node).to.eq(this.node);
-      expect(tx.logs[1].args.a).to.eq(accounts[1]);
+      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[0]});
       expect(await this.proxy.methods['addr(bytes32,uint256)'](this.node, 137)).to.eq(accounts[1].toLowerCase());
     });
 
-    it('setting coin type 137 updates RSK address', async () => {
+    it('setting coin type 137 updates RSK address and emits AddrChanged', async () => {
       var tx = await this.proxy.methods['setAddr(bytes32,uint256,bytes)'](this.node, 137, accounts[2], {from: accounts[0]});
       expect(tx.logs.length).to.eq(2);
       expect(tx.logs[0].event).to.eq("AddressChanged");
       expect(tx.logs[0].args.node).to.eq(this.node);
       expect(tx.logs[0].args.newAddress).to.eq(accounts[2].toLowerCase());
+      expect(tx.logs[0].args.coinType).to.be.bignumber.eq(web3.utils.toBN(137));
       expect(tx.logs[1].event).to.eq("AddrChanged");
       expect(tx.logs[1].args.node).to.eq(this.node);
       expect(tx.logs[1].args.a).to.eq(accounts[2]);
