@@ -463,4 +463,39 @@ contract('Resolver V1', async (accounts) => {
       });
     });
   });
+
+  describe('multicall', async () => {
+    it('allows setting multiple fields', async () => {
+      var addrSet = this.proxy.contract.methods['setAddr(bytes32,address)'](this.node, accounts[1]).encodeABI();
+      var textSet = this.proxy.contract.methods.setText(this.node, 'url', 'https://rifos.org/').encodeABI();
+
+      var tx = await this.proxy.multicall([addrSet, textSet], {from: accounts[0]});
+
+      assert.equal(tx.logs.length, 3);
+      assert.equal(tx.logs[0].event, 'AddressChanged');
+      assert.equal(tx.logs[0].args.node, this.node);
+      assert.equal(tx.logs[0].args.newAddress, accounts[1].toLowerCase());
+      assert.equal(tx.logs[1].event, 'AddrChanged');
+      assert.equal(tx.logs[1].args.node, this.node);
+      assert.equal(tx.logs[1].args.a, accounts[1]);
+      assert.equal(tx.logs[2].event, 'TextChanged');
+      assert.equal(tx.logs[2].args.node, this.node);
+      assert.equal(tx.logs[2].args.key, 'url');
+      assert.equal(await this.proxy.methods['addr(bytes32)'](this.node), accounts[1]);
+      assert.equal(await this.proxy.text(this.node, 'url'), 'https://rifos.org/');
+    });
+
+    it('allows reading multiple fields', async () => {
+      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[0]});
+      await this.proxy.setText(this.node, 'url', 'https://rifos.org/', {from: accounts[0]});
+
+      var results = await this.proxy.multicall.call([
+        this.proxy.contract.methods['addr(bytes32)'](this.node).encodeABI(),
+        this.proxy.contract.methods.text(this.node, 'url').encodeABI()
+      ]);
+
+      assert.equal(web3.eth.abi.decodeParameters(['address'], results[0])[0], accounts[1]);
+      assert.equal(web3.eth.abi.decodeParameters(['string'], results[1])[0], 'https://rifos.org/');
+    });
+  });
 });

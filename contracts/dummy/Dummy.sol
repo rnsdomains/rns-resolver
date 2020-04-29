@@ -1,4 +1,5 @@
 pragma solidity ^0.5.0;
+pragma experimental ABIEncoderV2;
 
 import "../ResolverV1.sol";
 import "@openzeppelin/contracts/introspection/IERC165.sol";
@@ -22,13 +23,13 @@ contract DummyVersion is ResolverV1 {
 }
 
 contract TruthyERC165 is IERC165 {
-    function supportsInterface(bytes4 interfaceId) external view returns (bool) {
+    function supportsInterface(bytes4 /*interfaceId*/) external view returns (bool) {
         return true;
     }
 }
 
 contract FalsyERC165 is IERC165 {
-    function supportsInterface(bytes4 interfaceId) external view returns (bool) {
+    function supportsInterface(bytes4 /*interfaceId*/) external view returns (bool) {
         return false;
     }
 }
