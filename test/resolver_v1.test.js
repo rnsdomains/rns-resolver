@@ -54,6 +54,8 @@ contract('Resolver V1', async (accounts) => {
     });
 
     it('should allow owner to upgrade', async () => {
+      await this.proxy.methods['setAddr(bytes32,address)'](this.node, accounts[1], {from: accounts[0]});
+
       const dummyVersion = await DummyVersion.new();
 
       await this.proxyAdmin.upgradeAndCall(this.resolverAddress, dummyVersion.address, encodeCall('initialize', [], []));
@@ -70,6 +72,8 @@ contract('Resolver V1', async (accounts) => {
       await proxy.setV(newV);
       const v = await proxy.v();
       expect(v).to.be.bignumber.eq(newV);
+
+      expect(await proxy.methods['addr(bytes32)'](this.node)).to.eq(accounts[1]);
     });
   });
 
