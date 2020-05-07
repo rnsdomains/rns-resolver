@@ -3,3 +3,4 @@ build/
 types
 AddrResolverData.json
 ChainAddrResolverData.json
+.secret
