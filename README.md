@@ -1,17 +1,33 @@
-# RNS Resolver
-
-[![npm version](https://badge.fury.io/js/%40rsksmart%2Frns-resolver.svg)](https://badge.fury.io/js/%40rsksmart%2Frns-resolver)
-
-RIF Name Service public resolver.
-
-- RSK Mainnet:
-- RSK Testnet:
-
-## Install
+<p align="middle">
+    <img src="https://www.rifos.org/assets/img/logo.svg" alt="logo" height="100" >
+</p>
+<h3 align="middle"><code>rns-resolver</code></h3>
+<p align="middle">
+    RNS Resolver
+</p>
+<p align="middle">
+    <a href="https://circleci.com/gh/rnsdomains/rns-resolver">
+        <img src="https://circleci.com/gh/rnsdomains/rns-resolver.svg?style=svg" alt="CircleCI" />
+    </a>
+    <a href="https://badge.fury.io/js/%40rsksmart%2Frns-resolver">
+        <img src="https://badge.fury.io/js/%40rsksmart%2Frns-resolver.svg" alt="npm" />
+    </a>
+    <a href="https://developers.rsk.co/rif/rns/architecture/Resolver/">
+      <img src="https://img.shields.io/badge/-docs-brightgreen" alt="docs" />
+    </a>
+    <a href="https://developers.rsk.co/rif/rns/specs/resolvers/">
+      <img src="https://img.shields.io/badge/-specs-lightgrey" alt="specs" />
+    </a>
+</p>
 
 ```
 npm i @rsksmart/rns-resolver
 ```
+
+Deployments:
+
+- RSK Mainnet: [0xD87f8121D44F3717d4bAdC50b24E50044f86D64B](https://explorer.rsk.co/address/0xd87f8121d44f3717d4badc50b24e50044f86d64b)
+- RSK Testnet: [0x25C289ccCFFf700c6a38722F4913924fE504De0e](https://explorer.testnet.rsk.co/address/0x25c289cccfff700c6a38722f4913924fe504de0e)
 
 ## Features
 
@@ -135,7 +151,7 @@ const resolver = new web3.eth.Contract(AddrResolverData.abi, AddrResolverData.ad
 
 Replace `web3-v1-contracts` with the proper library version.
 
-## Data
+## Old deployments
 
 - Public Resolver
   - [Docs](https://developers.rsk.co/rif/rns/architecture/RSKResolver/)

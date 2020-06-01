@@ -17,7 +17,7 @@ module.exports = {
       gasPrice: 600000000,
     },
     mainnet: {
-      provider: () => new HDWalletProvider(mnemonic, `https://public-node.rsk.co`, 0, 1, true, `m/44'/137'/0'/0/`),
+      provider: () => new HDWalletProvider(mnemonic, `http://localhost:4444`, 1, 1, true, `m/44'/137'/0'/0/`),
       network_id: 30,
       gasPrice: 60000000,
     }
