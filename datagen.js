@@ -27,3 +27,42 @@ const chainAddrResolverData = {
 };
 
 fs.writeFileSync('./ChainAddrResolverData.json', JSON.stringify(chainAddrResolverData));
+
+const resolverV1Build = require('./build/contracts/ResolverV1');
+
+const resolverV1BuildData = {
+  abi: resolverV1Build.abi,
+  bytecode: resolverV1Build.bytecode,
+  address: {
+    rskMainnet: addresses.ResolverV1.rskMainnet,
+    rskTestnet: addresses.ResolverV1.rskTestnet,
+  },
+};
+
+fs.writeFileSync('./ResolverV1Data.json', JSON.stringify(resolverV1BuildData));
+
+const proxyAdminBuild = require('./build/contracts/ProxyAdmin');
+
+const proxyAdminBuildData = {
+  abi: proxyAdminBuild.abi,
+  bytecode: proxyAdminBuild.bytecode,
+  address: {
+    rskMainnet: addresses.ProxyFactory.rskMainnet,
+    rskTestnet: addresses.ProxyFactory.rskTestnet,
+  },
+};
+
+fs.writeFileSync('./ProxyAdminData.json', JSON.stringify(proxyAdminBuildData));
+
+const proxyFactoryBuild = require('./build/contracts/ProxyFactory');
+
+const proxyFactoryBuildData = {
+  abi: proxyFactoryBuild.abi,
+  bytecode: proxyFactoryBuild.bytecode,
+  address: {
+    rskMainnet: addresses.ProxyAdmin.rskMainnet,
+    rskTestnet: addresses.ProxyAdmin.rskTestnet,
+  },
+};
+
+fs.writeFileSync('./ProxyFactoryData.json', JSON.stringify(proxyFactoryBuildData));

@@ -6,5 +6,17 @@
   "ChainAddrResolver": {
     "rskMainnet": "0x99a12be4c89cbf6cfd11d1f2c029904a7b644368",
     "rskTestnet": "0x404308f2a2eec2cdc3cb53d7d295af11c903414e"
+  },
+  "ProxyAdmin": {
+    "rskMainnet": "0xcCDBc15EdD43B15911895A5A592f7bFA43D9cfB1",
+    "rskTestnet": "0x02761E40dB981268ee80e9E5302e6df212259Fd4"
+  },
+  "ProxyFactory": {
+    "rskMainnet": "0x30569C0999f0C7fD7be9957ac4B4dEe803CAc293",
+    "rskTestnet": "0xbb71C17b28BAF2B9e7f5b31660eCF758113b3fEf"
+  },
+  "ResolverV1": {
+    "rskMainnet": "0x2D6EEdDDe13832512C68F9Ed7ccf44B728a2be70",
+    "rskTestnet": "0xe559e468C08f30518b4EE8bf7f9374736489C38b"
   }
 }
