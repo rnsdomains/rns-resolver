@@ -8,15 +8,15 @@
     "rskTestnet": "0x404308f2a2eec2cdc3cb53d7d295af11c903414e"
   },
   "ProxyAdmin": {
-    "rskMainnet": "0xcCDBc15EdD43B15911895A5A592f7bFA43D9cfB1",
-    "rskTestnet": "0x02761E40dB981268ee80e9E5302e6df212259Fd4"
+    "rskMainnet": "0xccdbc15edd43b15911895a5a592f7bfa43d9cfb1",
+    "rskTestnet": "0x02761e40db981268ee80e9e5302e6df212259fd4"
   },
   "ProxyFactory": {
-    "rskMainnet": "0x30569C0999f0C7fD7be9957ac4B4dEe803CAc293",
-    "rskTestnet": "0xbb71C17b28BAF2B9e7f5b31660eCF758113b3fEf"
+    "rskMainnet": "0x30569c0999f0c7fd7be9957ac4b4dee803cac293",
+    "rskTestnet": "0xbb71c17b28baf2b9e7f5b31660ecf758113b3fef"
   },
   "ResolverV1": {
-    "rskMainnet": "0x2D6EEdDDe13832512C68F9Ed7ccf44B728a2be70",
-    "rskTestnet": "0xe559e468C08f30518b4EE8bf7f9374736489C38b"
+    "rskMainnet": "0x2d6eeddde13832512c68f9ed7ccf44b728a2be70",
+    "rskTestnet": "0xe559e468c08f30518b4ee8bf7f9374736489c38b"
   }
 }
