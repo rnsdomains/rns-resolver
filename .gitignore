@@ -3,3 +3,7 @@ build/
 types
 AddrResolverData.json
 ChainAddrResolverData.json
+ProxyAdminData.json
+ProxyFactoryData.json
+ResolverV1Data.json
+.secret
