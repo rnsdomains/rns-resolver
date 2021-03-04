@@ -12,7 +12,7 @@ jobs:
         uses: actions/setup-node@v1
       - run: npm ci
       - name: Slither Static Analysis
-        uses: luisfontes19/slither-static-analysis-action@v0.3.1
+        uses: luisfontes19/slither-static-analysis-action@v0.3.2
         with:
           slither-version: '0.6.13'
           run-npm-install: false
