@@ -31,7 +31,7 @@
   "homepage": "https://github.com/rnsdomains/rns-resolver#readme",
   "dependencies": {
     "@ensdomains/resolver": "^0.2.4",
-    "@openzeppelin/contracts": "^2.4.0",
+    "@openzeppelin/contracts": "^4.7.2",
     "@openzeppelin/upgrades": "^2.8.0",
     "@rsksmart/rns-registry": "^1.0.0"
   },
